@@ -12,38 +12,30 @@ import { useFoodRepository } from "../contexts/FoodRepositoryContext";
 import { FoodItem } from "../data/interfaces";
 import { ThemedText } from "../components/ThemedText";
 import { ThemedView } from "../components/ThemedView";
+import { fetchProductInfo } from "../api/foodApi";
 
 export default function FoodInfoScreen() {
   const { barcode } = useLocalSearchParams();
   const [productInfo, setProductInfo] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const foodRepository = useFoodRepository();
 
   useEffect(() => {
-    fetchProductInfo();
+    loadProductInfo();
   }, [barcode]);
 
-  const fetchProductInfo = async () => {
+  const loadProductInfo = async () => {
+    setIsLoading(true);
     try {
-      const response = await fetch(
-        `https://world.openfoodfacts.net/api/v3/product/${barcode}?cc=us&lc=en`,
-        {
-          headers: {
-            Accept: "application/json",
-          },
-        }
-      );
-      const result = await response.json();
-      if (result && result.product) {
-        setProductInfo(result.product);
-      } else {
-        Alert.alert("Product not found");
-        router.back();
-      }
+      const info = await fetchProductInfo(barcode as string);
+      setProductInfo(info);
     } catch (error) {
       console.error("Error fetching product data:", error);
-      Alert.alert("Failed to fetch product data");
+      Alert.alert("Error", "Failed to fetch product data");
       router.back();
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -72,10 +64,13 @@ export default function FoodInfoScreen() {
     }
   };
 
-  if (!productInfo) {
+  if (isLoading) {
     return <ThemedText>Loading...</ThemedText>;
   }
 
+  if (!productInfo) {
+    return <ThemedText>No product information available.</ThemedText>;
+  }
   return (
     <ScrollView style={styles.container}>
       <ThemedText type="title" style={styles.productName}>
