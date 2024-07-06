@@ -5,11 +5,13 @@ import {
   ScrollView,
   SafeAreaView,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { ThemedText } from "../../components/ThemedText";
 import { useFoodRepository } from "../../contexts/FoodRepositoryContext";
 import { FoodItem } from "../../data/interfaces";
+import Icon from "react-native-vector-icons/MaterialIcons";
 
 export default function DiaryScreen() {
   const [diaryItems, setDiaryItems] = useState<{ [date: string]: FoodItem[] }>(
@@ -54,6 +56,29 @@ export default function DiaryScreen() {
     });
   };
 
+  const handleDeleteItem = async (item: FoodItem) => {
+    Alert.alert(
+      "Delete Item",
+      `Are you sure you want to delete ${item.name}?`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          onPress: async () => {
+            if (item.id !== undefined) {
+              await foodRepository.deleteItem(item.id);
+              loadDiaryItems();
+            }
+          },
+          style: "destructive",
+        },
+      ]
+    );
+  };
+
   const formatMacro = (value: number | null): string => {
     return value !== null ? value.toFixed(1) : "N/A";
   };
@@ -65,31 +90,38 @@ export default function DiaryScreen() {
           Food Diary
         </ThemedText>
         <ThemedText style={styles.totalCalories}>
-          Today's Total: {totalCalories} kcal
+          Today's Total: {totalCalories.toFixed(0)} kcal
         </ThemedText>
         {Object.entries(diaryItems).map(([date, items]) => (
           <View key={date}>
             <ThemedText style={styles.dateHeader}>{date}</ThemedText>
             {items.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={styles.diaryItem}
-                onPress={() => handleItemPress(item.barcode)}
-              >
-                <ThemedText style={styles.itemName}>{item.name}</ThemedText>
-                <ThemedText style={styles.itemDetails}>
-                  {item.brand} - {(item.calories || 0).toFixed(0)} kcal
-                </ThemedText>
-                {item.servingType === "serving" && (
-                  <ThemedText style={styles.servingDetails}>
-                    Serving Size: {item.quantity} {item.unit}
+              <View key={item.id} style={styles.diaryItemContainer}>
+                <TouchableOpacity
+                  style={styles.diaryItem}
+                  onPress={() => handleItemPress(item.barcode)}
+                >
+                  <ThemedText style={styles.itemName}>{item.name}</ThemedText>
+                  <ThemedText style={styles.itemDetails}>
+                    {item.brand} - {(item.calories || 0).toFixed(0)} kcal
                   </ThemedText>
-                )}
-                <ThemedText style={styles.macros}>
-                  P: {formatMacro(item.protein)}g | C: {formatMacro(item.carbs)}
-                  g | F: {formatMacro(item.fat)}g
-                </ThemedText>
-              </TouchableOpacity>
+                  {item.servingType === "serving" && (
+                    <ThemedText style={styles.servingDetails}>
+                      Serving Size: {item.quantity} {item.unit}
+                    </ThemedText>
+                  )}
+                  <ThemedText style={styles.macros}>
+                    P: {formatMacro(item.protein)}g | C:{" "}
+                    {formatMacro(item.carbs)}g | F: {formatMacro(item.fat)}g
+                  </ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={() => handleDeleteItem(item)}
+                >
+                  <Icon name="delete" size={24} color="#ff3366" />
+                </TouchableOpacity>
+              </View>
             ))}
           </View>
         ))}
@@ -124,11 +156,16 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 10,
   },
+  diaryItemContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
   diaryItem: {
+    flex: 1,
     backgroundColor: "#494c4d",
     borderRadius: 10,
     padding: 15,
-    marginBottom: 10,
   },
   itemName: {
     color: "#ffffff",
@@ -149,5 +186,9 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 12,
     marginTop: 5,
+  },
+  deleteButton: {
+    padding: 10,
+    marginLeft: 10,
   },
 });
