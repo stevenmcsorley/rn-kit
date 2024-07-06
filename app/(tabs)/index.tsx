@@ -55,6 +55,9 @@ export default function HomeScreen() {
   }, [foodRepository]);
 
   const subscribe = async () => {
+    if (Platform.OS !== "ios") {
+      return null;
+    }
     const isAvailable = await Pedometer.isAvailableAsync();
     setIsPedometerAvailable(String(isAvailable));
 
@@ -85,7 +88,9 @@ export default function HomeScreen() {
       subscription = await subscribe();
     };
 
-    initializeSubscription();
+    if (Platform.OS === "ios") {
+      initializeSubscription();
+    }
 
     return () => {
       if (subscription) {
@@ -135,20 +140,6 @@ export default function HomeScreen() {
             />
           </View>
         </View>
-        {Platform.OS === "android" && (
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <ThemedText style={styles.statLabel}>Steps Today</ThemedText>
-              <ThemedText style={styles.statValue}>{todayStepCount}</ThemedText>
-            </View>
-            <View style={styles.statItem}>
-              <ThemedText style={styles.statLabel}>Current Session</ThemedText>
-              <ThemedText style={styles.statValue}>
-                {currentStepCount}
-              </ThemedText>
-            </View>
-          </View>
-        )}
         {Platform.OS === "ios" && (
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
