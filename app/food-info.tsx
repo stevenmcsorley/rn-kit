@@ -6,6 +6,7 @@ import {
   Image,
   TouchableOpacity,
   Alert,
+  TextInput,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useFoodRepository } from "../contexts/FoodRepositoryContext";
@@ -17,6 +18,7 @@ export default function FoodInfoScreen() {
   const { barcode } = useLocalSearchParams();
   const [productInfo, setProductInfo] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [servingSize, setServingSize] = useState(100);
   const router = useRouter();
   const foodRepository = useFoodRepository();
 
@@ -38,13 +40,15 @@ export default function FoodInfoScreen() {
     }
   };
 
-  const addToDiary = async (servingType: "full" | "serving") => {
+  const addToDiary = async (
+    servingType: "full" | "serving",
+    customServingSize?: number
+  ) => {
     if (productInfo) {
       try {
-        const servingMultiplier =
-          servingType === "serving" && productInfo.serving_quantity
-            ? productInfo.serving_quantity / 100
-            : 1;
+        const servingMultiplier = customServingSize
+          ? customServingSize / 100
+          : 1;
 
         const foodItem: FoodItem = {
           name: productInfo.product_name,
@@ -71,10 +75,7 @@ export default function FoodInfoScreen() {
               : productInfo.nutriments.fat_100g,
           date: new Date().toISOString(),
           barcode: barcode as string,
-          quantity:
-            servingType === "serving"
-              ? productInfo.serving_quantity || 100
-              : 100,
+          quantity: customServingSize || productInfo.serving_quantity || 100,
           unit: productInfo.serving_quantity_unit || "g",
           servingType: servingType,
         };
@@ -90,6 +91,10 @@ export default function FoodInfoScreen() {
     }
   };
 
+  const handleServingSizeChange = (size: number) => {
+    setServingSize(size);
+  };
+
   if (isLoading) {
     return <ThemedText>Loading...</ThemedText>;
   }
@@ -97,6 +102,23 @@ export default function FoodInfoScreen() {
   if (!productInfo) {
     return <ThemedText>No product information available.</ThemedText>;
   }
+
+  const nutriments = productInfo.nutriments;
+  const hasNutritionalInfo =
+    nutriments &&
+    nutriments.proteins_100g &&
+    nutriments.carbohydrates_100g &&
+    nutriments.fat_100g;
+
+  const calculatedProtein = nutriments.proteins_100g
+    ? ((nutriments.proteins_100g * servingSize) / 100).toFixed(1)
+    : "N/A";
+  const calculatedCarbs = nutriments.carbohydrates_100g
+    ? ((nutriments.carbohydrates_100g * servingSize) / 100).toFixed(1)
+    : "N/A";
+  const calculatedFat = nutriments.fat_100g
+    ? ((nutriments.fat_100g * servingSize) / 100).toFixed(1)
+    : "N/A";
 
   return (
     <ScrollView style={styles.container}>
@@ -158,20 +180,52 @@ export default function FoodInfoScreen() {
           Fat (Serving): {productInfo.nutriments.fat_serving} g
         </ThemedText>
       )}
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => addToDiary("full")}
-        >
-          <ThemedText style={styles.addButtonText}>Add Full Product</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => addToDiary("serving")}
-        >
-          <ThemedText style={styles.addButtonText}>Add Serving</ThemedText>
-        </TouchableOpacity>
-      </View>
+      {hasNutritionalInfo ? (
+        <View style={styles.customServingContainer}>
+          <ThemedText style={styles.infoText}>
+            Custom Serving Size (grams):
+          </ThemedText>
+          <View style={styles.inputContainer}>
+            <TouchableOpacity
+              onPress={() => handleServingSizeChange(servingSize - 1)}
+            >
+              <ThemedText style={styles.changeServingSizeButton}>-</ThemedText>
+            </TouchableOpacity>
+            <TextInput
+              style={styles.input}
+              value={servingSize.toString()}
+              keyboardType="numeric"
+              onChangeText={(text) => handleServingSizeChange(Number(text))}
+            />
+            <TouchableOpacity
+              onPress={() => handleServingSizeChange(servingSize + 1)}
+            >
+              <ThemedText style={styles.changeServingSizeButton}>+</ThemedText>
+            </TouchableOpacity>
+          </View>
+          <ThemedText style={styles.infoText}>
+            Protein: {calculatedProtein} g
+          </ThemedText>
+          <ThemedText style={styles.infoText}>
+            Carbs: {calculatedCarbs} g
+          </ThemedText>
+          <ThemedText style={styles.infoText}>
+            Fat: {calculatedFat} g
+          </ThemedText>
+          <TouchableOpacity
+            style={[styles.addButton, styles.addButtonMargin]}
+            onPress={() => addToDiary("serving", servingSize)}
+          >
+            <ThemedText style={styles.addButtonText}>
+              Add Custom Serving
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <ThemedText style={styles.infoText}>
+          Not enough nutritional information available.
+        </ThemedText>
+      )}
     </ScrollView>
   );
 }
@@ -216,5 +270,35 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
     marginHorizontal: 5,
+  },
+  addButtonMargin: {
+    marginTop: 20,
+    marginBottom: 80,
+  },
+  customServingContainer: {
+    marginTop: 20,
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
+  },
+  input: {
+    height: 50,
+    borderColor: "#ccc",
+    borderWidth: 1,
+    padding: 10,
+    width: 100,
+    textAlign: "center",
+    fontSize: 20,
+    color: "#ffffff",
+    backgroundColor: "#494c4d",
+    marginHorizontal: 20,
+  },
+  changeServingSizeButton: {
+    fontSize: 30,
+    color: "#ff3366",
+    paddingHorizontal: 20,
   },
 });

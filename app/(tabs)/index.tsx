@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   ScrollView,
   SafeAreaView,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -26,7 +27,8 @@ export default function HomeScreen() {
 
   const loadScannedItems = useCallback(async () => {
     const items = await foodRepository.getAllItems();
-    setScannedItems(items.slice(-5)); // Get the last 5 items
+    // Fetch the last 5 scanned items
+    setScannedItems(items.slice(0, 5));
   }, [foodRepository]);
 
   const calculateMacros = useCallback(async () => {
@@ -133,17 +135,34 @@ export default function HomeScreen() {
             />
           </View>
         </View>
-
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <ThemedText style={styles.statLabel}>Steps Today</ThemedText>
-            <ThemedText style={styles.statValue}>{todayStepCount}</ThemedText>
+        {Platform.OS === "android" && (
+          <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <ThemedText style={styles.statLabel}>Steps Today</ThemedText>
+              <ThemedText style={styles.statValue}>{todayStepCount}</ThemedText>
+            </View>
+            <View style={styles.statItem}>
+              <ThemedText style={styles.statLabel}>Current Session</ThemedText>
+              <ThemedText style={styles.statValue}>
+                {currentStepCount}
+              </ThemedText>
+            </View>
           </View>
-          <View style={styles.statItem}>
-            <ThemedText style={styles.statLabel}>Current Session</ThemedText>
-            <ThemedText style={styles.statValue}>{currentStepCount}</ThemedText>
+        )}
+        {Platform.OS === "ios" && (
+          <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <ThemedText style={styles.statLabel}>Steps Today</ThemedText>
+              <ThemedText style={styles.statValue}>{todayStepCount}</ThemedText>
+            </View>
+            <View style={styles.statItem}>
+              <ThemedText style={styles.statLabel}>Current Session</ThemedText>
+              <ThemedText style={styles.statValue}>
+                {currentStepCount}
+              </ThemedText>
+            </View>
           </View>
-        </View>
+        )}
 
         <TouchableOpacity
           style={styles.scanButton}
@@ -160,7 +179,7 @@ export default function HomeScreen() {
           <View key={index} style={styles.scannedItem}>
             <ThemedText style={styles.itemName}>{item.name}</ThemedText>
             <ThemedText style={styles.itemCalories}>
-              {item.calories} kcal
+              {Math.round(item.calories)} kcal
             </ThemedText>
           </View>
         ))}
@@ -244,6 +263,7 @@ const styles = StyleSheet.create({
   scannedItem: {
     flexDirection: "row",
     justifyContent: "space-between",
+    flexWrap: "wrap",
     alignItems: "center",
     padding: 15,
     backgroundColor: "#2D2F34",
