@@ -13,6 +13,7 @@ import { useFoodRepository } from "../contexts/FoodRepositoryContext";
 import { FoodItem } from "../data/interfaces";
 import { ThemedText } from "../components/ThemedText";
 import { fetchProductInfo } from "../api/foodApi";
+import { MacroCircle } from "../components/MacroCircle";
 
 export default function FoodInfoScreen() {
   const { barcode } = useLocalSearchParams();
@@ -92,7 +93,7 @@ export default function FoodInfoScreen() {
   };
 
   const handleServingSizeChange = (size: number) => {
-    setServingSize(size);
+    setServingSize(Math.max(1, size)); // Ensure serving size is at least 1g
   };
 
   if (isLoading) {
@@ -110,6 +111,9 @@ export default function FoodInfoScreen() {
     nutriments.carbohydrates_100g &&
     nutriments.fat_100g;
 
+  const calculatedCalories = nutriments["energy-kcal_100g"]
+    ? ((nutriments["energy-kcal_100g"] * servingSize) / 100).toFixed(0)
+    : "N/A";
   const calculatedProtein = nutriments.proteins_100g
     ? ((nutriments.proteins_100g * servingSize) / 100).toFixed(1)
     : "N/A";
@@ -134,98 +138,72 @@ export default function FoodInfoScreen() {
       <ThemedText style={styles.infoText}>
         Brand: {productInfo.brands}
       </ThemedText>
-      <ThemedText style={styles.infoText}>
+      {/* <ThemedText style={styles.infoText}>
         Quantity: {productInfo.quantity}
-      </ThemedText>
-      <ThemedText style={styles.infoText}>
+      </ThemedText> */}
+      {/* <ThemedText style={styles.infoText}>
         Ingredients: {productInfo.ingredients_text}
-      </ThemedText>
-      <ThemedText style={styles.infoText}>
+      </ThemedText> */}
+      {/* <ThemedText style={styles.infoText}>
         Nutrition Grade: {productInfo.nutrition_grades_tags}
-      </ThemedText>
-      <ThemedText style={styles.infoText}>
+      </ThemedText> */}
+      {/* <ThemedText style={styles.infoText}>
         Eco-Score: {productInfo.ecoscore_score || "N/A"}
-      </ThemedText>
-      <ThemedText style={styles.infoText}>
-        Calories (100g): {productInfo.nutriments["energy-kcal_100g"] || "N/A"}{" "}
-        kcal
-      </ThemedText>
-      {productInfo.nutriments["energy-kcal_serving"] && (
-        <ThemedText style={styles.infoText}>
-          Calories (Serving): {productInfo.nutriments["energy-kcal_serving"]}{" "}
-          kcal
-        </ThemedText>
-      )}
-      <ThemedText style={styles.infoText}>
-        Protein (100g): {productInfo.nutriments.proteins_100g || "N/A"} g
-      </ThemedText>
-      {productInfo.nutriments.proteins_serving && (
-        <ThemedText style={styles.infoText}>
-          Protein (Serving): {productInfo.nutriments.proteins_serving} g
-        </ThemedText>
-      )}
-      <ThemedText style={styles.infoText}>
-        Carbs (100g): {productInfo.nutriments.carbohydrates_100g || "N/A"} g
-      </ThemedText>
-      {productInfo.nutriments.carbohydrates_serving && (
-        <ThemedText style={styles.infoText}>
-          Carbs (Serving): {productInfo.nutriments.carbohydrates_serving} g
-        </ThemedText>
-      )}
-      <ThemedText style={styles.infoText}>
-        Fat (100g): {productInfo.nutriments.fat_100g || "N/A"} g
-      </ThemedText>
-      {productInfo.nutriments.fat_serving && (
-        <ThemedText style={styles.infoText}>
-          Fat (Serving): {productInfo.nutriments.fat_serving} g
-        </ThemedText>
-      )}
-      {hasNutritionalInfo ? (
-        <View style={styles.customServingContainer}>
-          <ThemedText style={styles.infoText}>
-            Custom Serving Size (grams):
-          </ThemedText>
-          <View style={styles.inputContainer}>
-            <TouchableOpacity
-              onPress={() => handleServingSizeChange(servingSize - 1)}
-            >
-              <ThemedText style={styles.changeServingSizeButton}>-</ThemedText>
-            </TouchableOpacity>
-            <TextInput
-              style={styles.input}
-              value={servingSize.toString()}
-              keyboardType="numeric"
-              onChangeText={(text) => handleServingSizeChange(Number(text))}
-            />
-            <TouchableOpacity
-              onPress={() => handleServingSizeChange(servingSize + 1)}
-            >
-              <ThemedText style={styles.changeServingSizeButton}>+</ThemedText>
-            </TouchableOpacity>
-          </View>
-          <ThemedText style={styles.infoText}>
-            Protein: {calculatedProtein} g
-          </ThemedText>
-          <ThemedText style={styles.infoText}>
-            Carbs: {calculatedCarbs} g
-          </ThemedText>
-          <ThemedText style={styles.infoText}>
-            Fat: {calculatedFat} g
-          </ThemedText>
-          <TouchableOpacity
-            style={[styles.addButton, styles.addButtonMargin]}
-            onPress={() => addToDiary("serving", servingSize)}
-          >
-            <ThemedText style={styles.addButtonText}>
-              Add Custom Serving
+      </ThemedText> */}
+      {hasNutritionalInfo && (
+        <View style={styles.macroContainer}>
+          <View style={styles.caloriesContainer}>
+            <ThemedText style={styles.caloriesText}>
+              {calculatedCalories}
             </ThemedText>
+            <ThemedText style={styles.caloriesUnit}>kcal</ThemedText>
+          </View>
+          <View style={styles.macroCircles}>
+            <MacroCircle
+              label="Protein"
+              value={calculatedProtein}
+              color="#ff6b6b"
+            />
+            <MacroCircle
+              label="Carbs"
+              value={calculatedCarbs}
+              color="#4ecdc4"
+            />
+            <MacroCircle label="Fat" value={calculatedFat} color="#feca57" />
+          </View>
+        </View>
+      )}
+      <View style={styles.customServingContainer}>
+        <ThemedText style={styles.infoText}>
+          Custom Serving Size (grams):
+        </ThemedText>
+        <View style={styles.inputContainer}>
+          <TouchableOpacity
+            onPress={() => handleServingSizeChange(servingSize - 1)}
+          >
+            <ThemedText style={styles.changeServingSizeButton}>-</ThemedText>
+          </TouchableOpacity>
+          <TextInput
+            style={styles.input}
+            value={servingSize.toString()}
+            keyboardType="numeric"
+            onChangeText={(text) => handleServingSizeChange(Number(text))}
+          />
+          <TouchableOpacity
+            onPress={() => handleServingSizeChange(servingSize + 1)}
+          >
+            <ThemedText style={styles.changeServingSizeButton}>+</ThemedText>
           </TouchableOpacity>
         </View>
-      ) : (
-        <ThemedText style={styles.infoText}>
-          Not enough nutritional information available.
-        </ThemedText>
-      )}
+        <TouchableOpacity
+          style={[styles.addButton, styles.addButtonMargin]}
+          onPress={() => addToDiary("serving", servingSize)}
+        >
+          <ThemedText style={styles.addButtonText}>
+            Add Custom Serving
+          </ThemedText>
+        </TouchableOpacity>
+      </View>
     </ScrollView>
   );
 }
@@ -253,27 +231,30 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     color: "#ffffff",
   },
-  addButtonText: {
-    color: "#ffffff",
-    fontSize: 18,
-    fontWeight: "bold",
+  macroContainer: {
+    alignItems: "center",
+    marginVertical: 20,
+    paddingHorizontal: 20,
   },
-  buttonContainer: {
+  caloriesContainer: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    marginBottom: 15,
+  },
+  caloriesText: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#ffffff",
+  },
+  caloriesUnit: {
+    fontSize: 18,
+    color: "#ffffff",
+    marginLeft: 5,
+  },
+  macroCircles: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 20,
-  },
-  addButton: {
-    backgroundColor: "#ff3366",
-    padding: 15,
-    borderRadius: 10,
-    alignItems: "center",
-    flex: 1,
-    marginHorizontal: 5,
-  },
-  addButtonMargin: {
-    marginTop: 20,
-    marginBottom: 80,
+    width: "100%",
   },
   customServingContainer: {
     marginTop: 20,
@@ -300,5 +281,22 @@ const styles = StyleSheet.create({
     fontSize: 30,
     color: "#ff3366",
     paddingHorizontal: 20,
+  },
+  addButton: {
+    backgroundColor: "#ff3366",
+    padding: 15,
+    borderRadius: 10,
+    alignItems: "center",
+    flex: 1,
+    marginHorizontal: 5,
+  },
+  addButtonMargin: {
+    marginTop: 20,
+    marginBottom: 80,
+  },
+  addButtonText: {
+    color: "#ffffff",
+    fontSize: 18,
+    fontWeight: "bold",
   },
 });
