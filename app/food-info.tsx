@@ -11,7 +11,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useFoodRepository } from "../contexts/FoodRepositoryContext";
 import { FoodItem } from "../data/interfaces";
 import { ThemedText } from "../components/ThemedText";
-import { ThemedView } from "../components/ThemedView";
 import { fetchProductInfo } from "../api/foodApi";
 
 export default function FoodInfoScreen() {
@@ -39,22 +38,49 @@ export default function FoodInfoScreen() {
     }
   };
 
-  const addToDiary = async () => {
+  const addToDiary = async (servingType: "full" | "serving") => {
     if (productInfo) {
       try {
+        const servingMultiplier =
+          servingType === "serving" && productInfo.serving_quantity
+            ? productInfo.serving_quantity / 100
+            : 1;
+
         const foodItem: FoodItem = {
           name: productInfo.product_name,
           brand: productInfo.brands,
-          calories: productInfo.nutriments["energy-kcal_100g"] || 0,
-          protein: productInfo.nutriments.proteins_100g || 0,
-          carbs: productInfo.nutriments.carbohydrates_100g || 0,
-          fat: productInfo.nutriments.fat_100g || 0,
+          calories:
+            servingType === "serving"
+              ? productInfo.nutriments["energy-kcal_serving"] ||
+                productInfo.nutriments["energy-kcal_100g"] * servingMultiplier
+              : productInfo.nutriments["energy-kcal_100g"],
+          protein:
+            servingType === "serving"
+              ? productInfo.nutriments.proteins_serving ||
+                productInfo.nutriments.proteins_100g * servingMultiplier
+              : productInfo.nutriments.proteins_100g,
+          carbs:
+            servingType === "serving"
+              ? productInfo.nutriments.carbohydrates_serving ||
+                productInfo.nutriments.carbohydrates_100g * servingMultiplier
+              : productInfo.nutriments.carbohydrates_100g,
+          fat:
+            servingType === "serving"
+              ? productInfo.nutriments.fat_serving ||
+                productInfo.nutriments.fat_100g * servingMultiplier
+              : productInfo.nutriments.fat_100g,
           date: new Date().toISOString(),
           barcode: barcode as string,
+          quantity:
+            servingType === "serving"
+              ? productInfo.serving_quantity || 100
+              : 100,
+          unit: productInfo.serving_quantity_unit || "g",
+          servingType: servingType,
         };
 
         await foodRepository.addItem(foodItem);
-        Alert.alert("Success", "Item added to diary", [
+        Alert.alert("Success", `Item added to diary (${servingType})`, [
           { text: "OK", onPress: () => router.back() },
         ]);
       } catch (error) {
@@ -71,6 +97,7 @@ export default function FoodInfoScreen() {
   if (!productInfo) {
     return <ThemedText>No product information available.</ThemedText>;
   }
+
   return (
     <ScrollView style={styles.container}>
       <ThemedText type="title" style={styles.productName}>
@@ -98,23 +125,57 @@ export default function FoodInfoScreen() {
         Eco-Score: {productInfo.ecoscore_score || "N/A"}
       </ThemedText>
       <ThemedText style={styles.infoText}>
-        Calories: {productInfo.nutriments["energy-kcal_100g"] || "N/A"} kcal
+        Calories (100g): {productInfo.nutriments["energy-kcal_100g"] || "N/A"}{" "}
+        kcal
       </ThemedText>
+      {productInfo.nutriments["energy-kcal_serving"] && (
+        <ThemedText style={styles.infoText}>
+          Calories (Serving): {productInfo.nutriments["energy-kcal_serving"]}{" "}
+          kcal
+        </ThemedText>
+      )}
       <ThemedText style={styles.infoText}>
-        Protein: {productInfo.nutriments.proteins_100g || "N/A"} g
+        Protein (100g): {productInfo.nutriments.proteins_100g || "N/A"} g
       </ThemedText>
+      {productInfo.nutriments.proteins_serving && (
+        <ThemedText style={styles.infoText}>
+          Protein (Serving): {productInfo.nutriments.proteins_serving} g
+        </ThemedText>
+      )}
       <ThemedText style={styles.infoText}>
-        Carbs: {productInfo.nutriments.carbohydrates_100g || "N/A"} g
+        Carbs (100g): {productInfo.nutriments.carbohydrates_100g || "N/A"} g
       </ThemedText>
+      {productInfo.nutriments.carbohydrates_serving && (
+        <ThemedText style={styles.infoText}>
+          Carbs (Serving): {productInfo.nutriments.carbohydrates_serving} g
+        </ThemedText>
+      )}
       <ThemedText style={styles.infoText}>
-        Fat: {productInfo.nutriments.fat_100g || "N/A"} g
+        Fat (100g): {productInfo.nutriments.fat_100g || "N/A"} g
       </ThemedText>
-      <TouchableOpacity style={styles.addButton} onPress={addToDiary}>
-        <ThemedText style={styles.addButtonText}>Add to Diary</ThemedText>
-      </TouchableOpacity>
+      {productInfo.nutriments.fat_serving && (
+        <ThemedText style={styles.infoText}>
+          Fat (Serving): {productInfo.nutriments.fat_serving} g
+        </ThemedText>
+      )}
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => addToDiary("full")}
+        >
+          <ThemedText style={styles.addButtonText}>Add Full Product</ThemedText>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => addToDiary("serving")}
+        >
+          <ThemedText style={styles.addButtonText}>Add Serving</ThemedText>
+        </TouchableOpacity>
+      </View>
     </ScrollView>
   );
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -138,16 +199,22 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     color: "#ffffff",
   },
+  addButtonText: {
+    color: "#ffffff",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 20,
+  },
   addButton: {
     backgroundColor: "#ff3366",
     padding: 15,
     borderRadius: 10,
     alignItems: "center",
-    marginTop: 20,
-  },
-  addButtonText: {
-    color: "#ffffff",
-    fontSize: 18,
-    fontWeight: "bold",
+    flex: 1,
+    marginHorizontal: 5,
   },
 });

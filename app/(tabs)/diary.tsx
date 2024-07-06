@@ -78,8 +78,13 @@ export default function DiaryScreen() {
               >
                 <ThemedText style={styles.itemName}>{item.name}</ThemedText>
                 <ThemedText style={styles.itemDetails}>
-                  {item.brand} - {item.calories} kcal
+                  {item.brand} - {(item.calories || 0).toFixed(0)} kcal
                 </ThemedText>
+                {item.servingType === "serving" && (
+                  <ThemedText style={styles.servingDetails}>
+                    Serving Size: {item.quantity} {item.unit}
+                  </ThemedText>
+                )}
                 <ThemedText style={styles.macros}>
                   P: {formatMacro(item.protein)}g | C: {formatMacro(item.carbs)}
                   g | F: {formatMacro(item.fat)}g
@@ -131,6 +136,11 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   itemDetails: {
+    color: "#ffffff",
+    fontSize: 14,
+    marginTop: 5,
+  },
+  servingDetails: {
     color: "#ffffff",
     fontSize: 14,
     marginTop: 5,

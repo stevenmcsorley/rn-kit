@@ -26,14 +26,19 @@ export default function HomeScreen() {
 
   const loadScannedItems = useCallback(async () => {
     const items = await foodRepository.getAllItems();
-    setScannedItems(items.slice(0, 5)); // Get the last 5 items
+    setScannedItems(items.slice(-5)); // Get the last 5 items
   }, [foodRepository]);
 
   const calculateMacros = useCallback(async () => {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
 
-    const items = await foodRepository.getItemsByDate(todayStart.toISOString());
+    const items = await foodRepository.getItemsByDate(
+      todayStart.toISOString(),
+      todayEnd.toISOString()
+    );
 
     const totalMacros = items.reduce(
       (acc, item) => ({

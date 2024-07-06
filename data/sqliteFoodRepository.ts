@@ -14,17 +14,20 @@ export class SQLiteFoodRepository implements FoodRepository {
     );
   }
 
-  async getItemsByDate(date: string): Promise<FoodItem[]> {
+  async getItemsByDate(
+    startDate: string,
+    endDate: string
+  ): Promise<FoodItem[]> {
     return this.db.getAllAsync<FoodItem>(
-      "SELECT * FROM items WHERE date = ? ORDER BY id DESC",
-      [date]
+      "SELECT * FROM items WHERE date BETWEEN ? AND ? ORDER BY id DESC",
+      [startDate, endDate]
     );
   }
 
   async addItem(item: FoodItem): Promise<void> {
     await this.db.runAsync(
-      `INSERT INTO items (name, brand, calories, protein, carbs, fat, date, barcode) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO items (name, brand, calories, protein, carbs, fat, date, barcode, quantity, unit, servingType) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         item.name,
         item.brand,
@@ -34,6 +37,9 @@ export class SQLiteFoodRepository implements FoodRepository {
         item.fat,
         item.date,
         item.barcode,
+        item.quantity,
+        item.unit,
+        item.servingType,
       ]
     );
   }
@@ -48,7 +54,7 @@ export class SQLiteFoodRepository implements FoodRepository {
 
   async updateItem(item: FoodItem): Promise<void> {
     await this.db.runAsync(
-      `UPDATE items SET name = ?, brand = ?, calories = ?, protein = ?, carbs = ?, fat = ?, date = ? 
+      `UPDATE items SET name = ?, brand = ?, calories = ?, protein = ?, carbs = ?, fat = ?, date = ?, quantity = ?, unit = ?, servingType = ? 
        WHERE barcode = ?`,
       [
         item.name,
@@ -58,6 +64,9 @@ export class SQLiteFoodRepository implements FoodRepository {
         item.carbs,
         item.fat,
         item.date,
+        item.quantity,
+        item.unit,
+        item.servingType,
         item.barcode,
       ]
     );

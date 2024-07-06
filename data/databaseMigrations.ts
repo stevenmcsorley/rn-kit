@@ -1,7 +1,7 @@
 import { SQLiteDatabase } from "expo-sqlite";
 
 export async function migrateDatabase(db: SQLiteDatabase) {
-  const DATABASE_VERSION = 3;
+  const DATABASE_VERSION = 4; // Incremented to trigger the new migration
   const result = await db.getFirstAsync<{ user_version: number } | null>(
     "PRAGMA user_version"
   );
@@ -17,8 +17,15 @@ export async function migrateDatabase(db: SQLiteDatabase) {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
         brand TEXT,
-        calories INTEGER,
-        barcode TEXT
+        calories REAL,
+        barcode TEXT,
+        protein REAL,
+        carbs REAL,
+        fat REAL,
+        date TEXT,
+        quantity REAL,
+        unit TEXT,
+        servingType TEXT
       );
 
       -- Check if new columns exist, if not, add them
@@ -35,6 +42,9 @@ export async function migrateDatabase(db: SQLiteDatabase) {
       { name: "carbs", type: "REAL" },
       { name: "fat", type: "REAL" },
       { name: "date", type: "TEXT" },
+      { name: "quantity", type: "REAL" },
+      { name: "unit", type: "TEXT" },
+      { name: "servingType", type: "TEXT" },
     ];
 
     for (const column of columnsToAdd) {
