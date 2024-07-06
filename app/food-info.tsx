@@ -8,16 +8,16 @@ import {
   Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useSQLiteContext } from "expo-sqlite";
-
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
+import { useFoodRepository } from "../contexts/FoodRepositoryContext";
+import { FoodItem } from "../data/interfaces";
+import { ThemedText } from "../components/ThemedText";
+import { ThemedView } from "../components/ThemedView";
 
 export default function FoodInfoScreen() {
   const { barcode } = useLocalSearchParams();
   const [productInfo, setProductInfo] = useState<any>(null);
   const router = useRouter();
-  const db = useSQLiteContext();
+  const foodRepository = useFoodRepository();
 
   useEffect(() => {
     fetchProductInfo();
@@ -47,27 +47,26 @@ export default function FoodInfoScreen() {
     }
   };
 
-  const addToDatabase = async () => {
+  const addToDiary = async () => {
     if (productInfo) {
       try {
-        await db.runAsync(
-          "INSERT INTO items (name, brand, calories, protein, carbs, fat, date, barcode) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-          [
-            productInfo.product_name,
-            productInfo.brands,
-            productInfo.nutriments["energy-kcal_100g"] || 0,
-            productInfo.nutriments.proteins_100g || 0,
-            productInfo.nutriments.carbohydrates_100g || 0,
-            productInfo.nutriments.fat_100g || 0,
-            new Date().toISOString(),
-            barcode as string,
-          ]
-        );
+        const foodItem: FoodItem = {
+          name: productInfo.product_name,
+          brand: productInfo.brands,
+          calories: productInfo.nutriments["energy-kcal_100g"] || 0,
+          protein: productInfo.nutriments.proteins_100g || 0,
+          carbs: productInfo.nutriments.carbohydrates_100g || 0,
+          fat: productInfo.nutriments.fat_100g || 0,
+          date: new Date().toISOString(),
+          barcode: barcode as string,
+        };
+
+        await foodRepository.addItem(foodItem);
         Alert.alert("Success", "Item added to diary", [
           { text: "OK", onPress: () => router.back() },
         ]);
       } catch (error) {
-        console.error("Error adding item to database:", error);
+        console.error("Error adding item to diary:", error);
         Alert.alert("Error", "Failed to add item to diary");
       }
     }
@@ -115,13 +114,12 @@ export default function FoodInfoScreen() {
       <ThemedText style={styles.infoText}>
         Fat: {productInfo.nutriments.fat_100g || "N/A"} g
       </ThemedText>
-      <TouchableOpacity style={styles.addButton} onPress={addToDatabase}>
+      <TouchableOpacity style={styles.addButton} onPress={addToDiary}>
         <ThemedText style={styles.addButtonText}>Add to Diary</ThemedText>
       </TouchableOpacity>
     </ScrollView>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

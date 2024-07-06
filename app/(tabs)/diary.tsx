@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import {
   StyleSheet,
   View,
@@ -6,34 +6,21 @@ import {
   SafeAreaView,
   TouchableOpacity,
 } from "react-native";
-import { useSQLiteContext } from "expo-sqlite";
 import { useRouter, useFocusEffect } from "expo-router";
-import { ThemedText } from "@/components/ThemedText";
-
-interface DiaryItem {
-  id: number;
-  name: string;
-  brand: string;
-  calories: number;
-  protein: number | null;
-  carbs: number | null;
-  fat: number | null;
-  date: string;
-  barcode: string;
-}
+import { ThemedText } from "../../components/ThemedText";
+import { useFoodRepository } from "../../contexts/FoodRepositoryContext";
+import { FoodItem } from "../../data/interfaces";
 
 export default function DiaryScreen() {
-  const [diaryItems, setDiaryItems] = useState<{ [date: string]: DiaryItem[] }>(
+  const [diaryItems, setDiaryItems] = useState<{ [date: string]: FoodItem[] }>(
     {}
   );
   const [totalCalories, setTotalCalories] = useState(0);
-  const db = useSQLiteContext();
+  const foodRepository = useFoodRepository();
   const router = useRouter();
 
   const loadDiaryItems = useCallback(async () => {
-    const items = await db.getAllAsync<DiaryItem>(
-      "SELECT * FROM items ORDER BY date DESC, id DESC"
-    );
+    const items = await foodRepository.getAllItems();
 
     const groupedItems = items.reduce((acc, item) => {
       const date = new Date(item.date).toDateString();
@@ -42,7 +29,7 @@ export default function DiaryScreen() {
       }
       acc[date].push(item);
       return acc;
-    }, {} as { [date: string]: DiaryItem[] });
+    }, {} as { [date: string]: FoodItem[] });
 
     setDiaryItems(groupedItems);
 
@@ -52,7 +39,7 @@ export default function DiaryScreen() {
       0
     );
     setTotalCalories(todayCalories);
-  }, [db]);
+  }, [foodRepository]);
 
   useFocusEffect(
     useCallback(() => {

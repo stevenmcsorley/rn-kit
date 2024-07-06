@@ -8,42 +8,32 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
-import { useSQLiteContext } from "expo-sqlite";
 import { Pedometer } from "expo-sensors";
 
 import { ThemedText } from "@/components/ThemedText";
 import { MacroCircle } from "@/components/MacroCircle";
+import { useFoodRepository } from "@/contexts/FoodRepositoryContext";
+import { FoodItem } from "@/data/interfaces";
 
 export default function HomeScreen() {
-  const [scannedItems, setScannedItems] = useState<any[]>([]);
+  const [scannedItems, setScannedItems] = useState<FoodItem[]>([]);
   const [isPedometerAvailable, setIsPedometerAvailable] = useState("checking");
   const [todayStepCount, setTodayStepCount] = useState(0);
   const [currentStepCount, setCurrentStepCount] = useState(0);
   const [macros, setMacros] = useState({ protein: 0, carbs: 0, fat: 0 });
   const router = useRouter();
-  const db = useSQLiteContext();
+  const foodRepository = useFoodRepository();
 
   const loadScannedItems = useCallback(async () => {
-    const items = await db.getAllAsync<{
-      id: number;
-      name: string;
-      brand: string;
-      calories: number;
-    }>("SELECT * FROM items ORDER BY id DESC LIMIT 5");
-    setScannedItems(items);
-  }, [db]);
+    const items = await foodRepository.getAllItems();
+    setScannedItems(items.slice(0, 5)); // Get the last 5 items
+  }, [foodRepository]);
 
   const calculateMacros = useCallback(async () => {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
-    const items = await db.getAllAsync<{
-      protein: number;
-      carbs: number;
-      fat: number;
-    }>("SELECT protein, carbs, fat FROM items WHERE date >= ?", [
-      todayStart.toISOString(),
-    ]);
+    const items = await foodRepository.getItemsByDate(todayStart.toISOString());
 
     const totalMacros = items.reduce(
       (acc, item) => ({
@@ -55,7 +45,7 @@ export default function HomeScreen() {
     );
 
     setMacros(totalMacros);
-  }, [db]);
+  }, [foodRepository]);
 
   const subscribe = async () => {
     const isAvailable = await Pedometer.isAvailableAsync();
