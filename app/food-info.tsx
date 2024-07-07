@@ -241,22 +241,24 @@ export default function FoodInfoScreen() {
             </ThemedText>
             <View style={styles.inputContainer}>
               <TouchableOpacity
+                style={styles.buttonContainer}
                 onPress={() => handleServingSizeChange(servingSize - 1)}
               >
-                <ThemedText style={styles.changeServingSizeButton}>
+                <ThemedText style={styles.changeServingSizeButton_minus}>
                   -
                 </ThemedText>
               </TouchableOpacity>
               <TextInput
-                style={styles.input}
+                style={styles.input_inc}
                 value={servingSize.toString()}
                 keyboardType="numeric"
                 onChangeText={(text) => handleServingSizeChange(Number(text))}
               />
               <TouchableOpacity
+                style={styles.buttonContainer}
                 onPress={() => handleServingSizeChange(servingSize + 1)}
               >
-                <ThemedText style={styles.changeServingSizeButton}>
+                <ThemedText style={styles.changeServingSizeButton_plus}>
                   +
                 </ThemedText>
               </TouchableOpacity>
@@ -399,12 +401,12 @@ const styles = StyleSheet.create({
   customServingContainer: {
     marginTop: 20,
   },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 20,
-  },
+  // inputContainer: {
+  //   flexDirection: "row",
+  //   alignItems: "center",
+  //   justifyContent: "center",
+  //   marginBottom: 20,
+  // },
   input: {
     height: 50,
     borderColor: "#ccc",
@@ -417,11 +419,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#494c4d",
     marginHorizontal: 20,
   },
-  changeServingSizeButton: {
-    fontSize: 30,
-    color: "#ff3366",
-    paddingHorizontal: 20,
-  },
+  // changeServingSizeButton: {
+  //   fontSize: 30,
+  //   color: "#ff3366",
+  //   paddingHorizontal: 20,
+  // },
   addButton: {
     backgroundColor: "#ff3366",
     padding: 15,
@@ -484,5 +486,40 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     backgroundColor: "#494c4d",
     borderRadius: 5,
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 10,
+    padding: 10,
+  },
+  buttonContainer: {
+    backgroundColor: "green",
+    borderRadius: 0,
+    marginHorizontal: 0,
+  },
+  changeServingSizeButton_plus: {
+    fontSize: 20,
+    color: "#FFFFFF",
+    paddingHorizontal: 30,
+    paddingVertical: 16,
+    textAlign: "center",
+  },
+  changeServingSizeButton_minus: {
+    fontSize: 20,
+    color: "#FFFFFF",
+    paddingHorizontal: 30,
+    paddingVertical: 16,
+    textAlign: "center",
+    backgroundColor: "red",
+  },
+  input_inc: {
+    fontSize: 24,
+    textAlign: "center",
+    backgroundColor: "#FFFFFF",
+    width: 80,
+    height: 52,
+    marginHorizontal: 0,
   },
 });
