@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   StyleSheet,
   View,
@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
-import { useRouter, useFocusEffect } from "expo-router";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { ThemedText } from "../../components/ThemedText";
 import { useFoodRepository } from "../../contexts/FoodRepositoryContext";
 import { FoodItem } from "../../data/interfaces";
@@ -17,13 +17,13 @@ export default function DiaryScreen() {
   const [diaryItems, setDiaryItems] = useState<{ [date: string]: FoodItem[] }>(
     {}
   );
-  const [totalCalories, setTotalCalories] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
   const foodRepository = useFoodRepository();
   const router = useRouter();
+  const { newRefreshKey } = useLocalSearchParams();
 
   const loadDiaryItems = useCallback(async () => {
     const items = await foodRepository.getAllItems();
-
     const groupedItems = items.reduce((acc, item) => {
       const date = new Date(item.date).toDateString();
       if (!acc[date]) {
@@ -34,54 +34,69 @@ export default function DiaryScreen() {
     }, {} as { [date: string]: FoodItem[] });
 
     setDiaryItems(groupedItems);
-
-    const today = new Date().toDateString();
-    const todayCalories = (groupedItems[today] || []).reduce(
-      (sum, item) => sum + (item.calories || 0),
-      0
-    );
-    setTotalCalories(todayCalories);
   }, [foodRepository]);
 
   useFocusEffect(
     useCallback(() => {
       loadDiaryItems();
-    }, [loadDiaryItems])
+    }, [loadDiaryItems, refreshKey])
   );
 
-  const handleItemPress = (barcode: string) => {
-    router.push({
-      pathname: "/food-info",
-      params: { barcode, fromDiary: "true" },
-    });
-  };
+  useFocusEffect(
+    useCallback(() => {
+      if (newRefreshKey) {
+        setRefreshKey(parseInt(newRefreshKey as string));
+      }
+    }, [newRefreshKey])
+  );
 
-  const handleDeleteItem = async (item: FoodItem) => {
-    Alert.alert(
-      "Delete Item",
-      `Are you sure you want to delete ${item.name}?`,
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Delete",
-          onPress: async () => {
-            if (item.id !== undefined) {
-              await foodRepository.deleteItem(item.id);
-              loadDiaryItems();
-            }
-          },
-          style: "destructive",
-        },
-      ]
+  const totalCalories = useMemo(() => {
+    const today = new Date().toDateString();
+    return (diaryItems[today] || []).reduce(
+      (sum, item) => sum + (item.calories || 0),
+      0
     );
-  };
+  }, [diaryItems]);
 
-  const formatMacro = (value: number | null): string => {
+  const handleItemPress = useCallback(
+    (barcode: string) => {
+      router.push({
+        pathname: "/food-info",
+        params: { barcode, fromDiary: "true", refreshKey },
+      });
+    },
+    [router, refreshKey]
+  );
+
+  const handleDeleteItem = useCallback(
+    (item: FoodItem) => {
+      Alert.alert(
+        "Delete Item",
+        `Are you sure you want to delete ${item.name}?`,
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "Delete",
+            onPress: async () => {
+              if (item.id !== undefined) {
+                await foodRepository.deleteItem(item.id);
+                setRefreshKey((prev) => prev + 1);
+              }
+            },
+            style: "destructive",
+          },
+        ]
+      );
+    },
+    [foodRepository]
+  );
+
+  const formatMacro = useCallback((value: number | null): string => {
     return value !== null ? value.toFixed(1) : "N/A";
-  };
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -93,34 +108,36 @@ export default function DiaryScreen() {
           Today's Total: {totalCalories.toFixed(0)} kcal
         </ThemedText>
         {Object.entries(diaryItems).map(([date, items]) => (
-          <View key={date}>
+          <View key={date} style={styles.dateContainer}>
             <ThemedText style={styles.dateHeader}>{date}</ThemedText>
             {items.map((item) => (
               <View key={item.id} style={styles.diaryItemContainer}>
-                <TouchableOpacity
-                  style={styles.diaryItem}
-                  onPress={() => handleItemPress(item.barcode)}
-                >
-                  <ThemedText style={styles.itemName}>{item.name}</ThemedText>
-                  <ThemedText style={styles.itemDetails}>
-                    {item.brand} - {(item.calories || 0).toFixed(0)} kcal
-                  </ThemedText>
-                  {item.servingType === "serving" && (
-                    <ThemedText style={styles.servingDetails}>
-                      Serving Size: {item.quantity} {item.unit}
+                <View style={styles.diaryItem}>
+                  <TouchableOpacity
+                    style={styles.diaryItemText}
+                    onPress={() => handleItemPress(item.barcode)}
+                  >
+                    <ThemedText style={styles.itemName}>{item.name}</ThemedText>
+                    <ThemedText style={styles.itemDetails}>
+                      {item.brand} - {(item.calories || 0).toFixed(0)} kcal
                     </ThemedText>
-                  )}
-                  <ThemedText style={styles.macros}>
-                    P: {formatMacro(item.protein)}g | C:{" "}
-                    {formatMacro(item.carbs)}g | F: {formatMacro(item.fat)}g
-                  </ThemedText>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.deleteButton}
-                  onPress={() => handleDeleteItem(item)}
-                >
-                  <Icon name="delete" size={24} color="#ff3366" />
-                </TouchableOpacity>
+                    {item.servingType === "serving" && (
+                      <ThemedText style={styles.servingDetails}>
+                        Serving Size: {item.quantity} {item.unit}
+                      </ThemedText>
+                    )}
+                    <ThemedText style={styles.macros}>
+                      P: {formatMacro(item.protein)}g | C:{" "}
+                      {formatMacro(item.carbs)}g | F: {formatMacro(item.fat)}g
+                    </ThemedText>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={() => handleDeleteItem(item)}
+                  >
+                    <Icon name="delete" size={24} color="#ff3366" />
+                  </TouchableOpacity>
+                </View>
               </View>
             ))}
           </View>
@@ -149,6 +166,9 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     marginBottom: 20,
   },
+  dateContainer: {
+    marginBottom: 20,
+  },
   dateHeader: {
     fontSize: 20,
     fontWeight: "bold",
@@ -157,15 +177,17 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   diaryItemContainer: {
-    flexDirection: "row",
-    alignItems: "center",
     marginBottom: 10,
   },
   diaryItem: {
-    flex: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
     backgroundColor: "#494c4d",
     borderRadius: 10,
     padding: 15,
+  },
+  diaryItemText: {
+    flex: 1,
   },
   itemName: {
     color: "#ffffff",
@@ -188,7 +210,8 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   deleteButton: {
-    padding: 10,
-    marginLeft: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingLeft: 10,
   },
 });

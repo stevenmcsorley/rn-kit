@@ -13,46 +13,14 @@ import { Pedometer } from "expo-sensors";
 
 import { ThemedText } from "@/components/ThemedText";
 import { MacroCircle } from "@/components/MacroCircle";
-import { useFoodRepository } from "@/contexts/FoodRepositoryContext";
-import { FoodItem } from "@/data/interfaces";
+import { useHome } from "../contexts/HomeContext";
 
 export default function HomeScreen() {
-  const [scannedItems, setScannedItems] = useState<FoodItem[]>([]);
+  const { scannedItems, macros, loadScannedItems, calculateMacros } = useHome();
   const [isPedometerAvailable, setIsPedometerAvailable] = useState("checking");
   const [todayStepCount, setTodayStepCount] = useState(0);
   const [currentStepCount, setCurrentStepCount] = useState(0);
-  const [macros, setMacros] = useState({ protein: 0, carbs: 0, fat: 0 });
   const router = useRouter();
-  const foodRepository = useFoodRepository();
-
-  const loadScannedItems = useCallback(async () => {
-    const items = await foodRepository.getAllItems();
-    // Fetch the last 5 scanned items
-    setScannedItems(items.slice(0, 5));
-  }, [foodRepository]);
-
-  const calculateMacros = useCallback(async () => {
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
-
-    const items = await foodRepository.getItemsByDate(
-      todayStart.toISOString(),
-      todayEnd.toISOString()
-    );
-
-    const totalMacros = items.reduce(
-      (acc, item) => ({
-        protein: acc.protein + (item.protein || 0),
-        carbs: acc.carbs + (item.carbs || 0),
-        fat: acc.fat + (item.fat || 0),
-      }),
-      { protein: 0, carbs: 0, fat: 0 }
-    );
-
-    setMacros(totalMacros);
-  }, [foodRepository]);
 
   const subscribe = async () => {
     if (Platform.OS !== "ios") {
@@ -105,11 +73,6 @@ export default function HomeScreen() {
       calculateMacros();
     }, [loadScannedItems, calculateMacros])
   );
-
-  useEffect(() => {
-    loadScannedItems();
-    calculateMacros();
-  }, [loadScannedItems, calculateMacros]);
 
   return (
     <SafeAreaView style={styles.container}>
