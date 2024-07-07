@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "FitnessApp",
-    "slug": "FitnessApp",
-    "version": "1.0.0",
+    "name": "NutriScan Pro",
+    "slug": "nutriscan-pro",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "nutriscanpro",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/images/splash.png",
@@ -14,6 +14,8 @@
     },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.ohmdesign.nutriscanpro",
+      "buildNumber": "2",
       "infoPlist": {
         "NSHealthShareUsageDescription": "This app requires access to your step count data to display it on the dashboard.",
         "NSHealthUpdateUsageDescription": "This app requires access to your step count data to display it on the dashboard.",
@@ -25,8 +27,11 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "permissions": ["android.permission.CAMERA"],
-      "package": "com.anonymous.BarcodeScannerApp"
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.ohmdesign.nutriscanpro"
     },
     "web": {
       "bundler": "metro",
@@ -50,6 +55,14 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "f45d4538-2f41-4581-b0d2-f6884be769c9"
+      }
     }
   }
 }

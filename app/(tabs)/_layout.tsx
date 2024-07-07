@@ -14,8 +14,6 @@ export default function TabsLayout() {
             iconName = focused ? "book" : "book-outline";
           } else if (route.name === "scanner") {
             iconName = focused ? "scan" : "scan-outline";
-          } else if (route.name === "DatabaseChecker") {
-            iconName = focused ? "code" : "code";
           } else {
             iconName = "alert-circle"; // Default icon
           }
@@ -43,12 +41,6 @@ export default function TabsLayout() {
         name="scanner"
         options={{
           title: "Scan",
-        }}
-      />
-      <Tabs.Screen
-        name="DatabaseChecker" // Reference the screen by its file name
-        options={{
-          title: "Database",
         }}
       />
     </Tabs>

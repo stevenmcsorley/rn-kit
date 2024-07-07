@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   StyleSheet,
   View,
@@ -8,7 +8,7 @@ import {
   Alert,
   TextInput,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useFoodRepository } from "../contexts/FoodRepositoryContext";
 import { useHome } from "./contexts/HomeContext";
 import { FoodItem } from "../data/interfaces";
@@ -27,11 +27,15 @@ export default function FoodInfoScreen() {
   const foodRepository = useFoodRepository();
   const { refreshDiary } = useHome();
 
-  useEffect(() => {
-    loadProductInfo();
-  }, [barcode]);
+  const resetState = useCallback(() => {
+    setProductInfo(null);
+    setIsLoading(true);
+    setServingSize(100);
+    setManualEntryVisible(false);
+    setManualItem({});
+  }, []);
 
-  const loadProductInfo = async () => {
+  const loadProductInfo = useCallback(async () => {
     setIsLoading(true);
     try {
       // First, check if it's a manual entry in the local database
@@ -57,7 +61,14 @@ export default function FoodInfoScreen() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [barcode, foodRepository, router]);
+
+  useFocusEffect(
+    useCallback(() => {
+      resetState();
+      loadProductInfo();
+    }, [resetState, loadProductInfo])
+  );
 
   const addToDiary = async (
     servingType: "full" | "serving",

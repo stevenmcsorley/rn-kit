@@ -26,6 +26,7 @@ export default function HomeScreen() {
     if (Platform.OS !== "ios") {
       return null;
     }
+
     const isAvailable = await Pedometer.isAvailableAsync();
     setIsPedometerAvailable(String(isAvailable));
 
