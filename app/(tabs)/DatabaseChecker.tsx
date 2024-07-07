@@ -26,7 +26,7 @@ const fetchTableStructure = async () => {
         `PRAGMA table_info(items);`,
         [],
         (_, { rows }) => {
-          resolve(rows._array);
+          resolve(rows.raw()); // raw() might be used instead of _array in some SQLite libraries
         },
         (_, error) => {
           console.error("Error fetching table structure:", error);

@@ -43,19 +43,17 @@ export default function FoodInfoScreen() {
       } else {
         // If not in local database, fetch from API
         const info = await fetchProductInfo(barcode as string);
-        setProductInfo(info);
+        if (info === null) {
+          // Product not found in API, show manual entry form
+          setManualEntryVisible(true);
+        } else {
+          setProductInfo(info);
+        }
       }
     } catch (error) {
       console.error("Error fetching product data:", error);
-      if (
-        error.message === "Product not found" ||
-        error.message.includes("404")
-      ) {
-        setManualEntryVisible(true);
-      } else {
-        Alert.alert("Error", "Failed to fetch product data");
-        router.back();
-      }
+      Alert.alert("Error", "Failed to fetch product data");
+      router.back();
     } finally {
       setIsLoading(false);
     }
