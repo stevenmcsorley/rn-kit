@@ -516,6 +516,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
     paddingVertical: 16,
     textAlign: "center",
+    backgroundColor: "#ff3366",
+    borderTopRightRadius: 20,
+    borderBottomRightRadius: 10,
   },
   changeServingSizeButton_minus: {
     fontSize: 20,
@@ -523,7 +526,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
     paddingVertical: 16,
     textAlign: "center",
-    backgroundColor: "red",
+    backgroundColor: "#ff3366",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 10,
   },
   input_inc: {
     fontSize: 24,
