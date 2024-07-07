@@ -1,6 +1,6 @@
 # Privacy Policy for NutriScan Pro
 
-Effective date: [Current Date]
+Effective date: 07/07/2024
 
 ## Introduction
 
