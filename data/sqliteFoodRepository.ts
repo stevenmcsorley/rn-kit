@@ -26,8 +26,8 @@ export class SQLiteFoodRepository implements FoodRepository {
 
   async addItem(item: FoodItem): Promise<void> {
     await this.db.runAsync(
-      `INSERT INTO items (name, brand, calories, protein, carbs, fat, date, barcode, quantity, unit, servingType) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO items (name, brand, calories, protein, carbs, fat, saturatedFat, cholesterol, sodium, fiber, sugar, date, barcode, quantity, unit, servingType) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         item.name,
         item.brand,
@@ -35,6 +35,11 @@ export class SQLiteFoodRepository implements FoodRepository {
         item.protein,
         item.carbs,
         item.fat,
+        item.saturatedFat,
+        item.cholesterol,
+        item.sodium,
+        item.fiber,
+        item.sugar,
         item.date,
         item.barcode,
         item.quantity,
@@ -54,7 +59,7 @@ export class SQLiteFoodRepository implements FoodRepository {
 
   async updateItem(item: FoodItem): Promise<void> {
     await this.db.runAsync(
-      `UPDATE items SET name = ?, brand = ?, calories = ?, protein = ?, carbs = ?, fat = ?, date = ?, quantity = ?, unit = ?, servingType = ? 
+      `UPDATE items SET name = ?, brand = ?, calories = ?, protein = ?, carbs = ?, fat = ?, saturatedFat = ?, cholesterol = ?, sodium = ?, fiber = ?, sugar = ?, date = ?, quantity = ?, unit = ?, servingType = ? 
        WHERE barcode = ?`,
       [
         item.name,
@@ -63,6 +68,11 @@ export class SQLiteFoodRepository implements FoodRepository {
         item.protein,
         item.carbs,
         item.fat,
+        item.saturatedFat,
+        item.cholesterol,
+        item.sodium,
+        item.fiber,
+        item.sugar,
         item.date,
         item.quantity,
         item.unit,
@@ -74,5 +84,19 @@ export class SQLiteFoodRepository implements FoodRepository {
 
   async deleteItem(id: number): Promise<void> {
     await this.db.runAsync("DELETE FROM items WHERE id = ?", [id]);
+  }
+
+  async getDailyCalorieGoal(): Promise<number> {
+    const result = await this.db.getFirstAsync<{ value: number }>(
+      "SELECT value FROM settings WHERE key = 'dailyCalorieGoal' LIMIT 1"
+    );
+    return result?.value ?? 2000; // default value if not set
+  }
+
+  async setDailyCalorieGoal(goal: number): Promise<void> {
+    await this.db.runAsync(
+      "INSERT OR REPLACE INTO settings (key, value) VALUES ('dailyCalorieGoal', ?)",
+      [goal]
+    );
   }
 }

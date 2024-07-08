@@ -14,7 +14,7 @@ import { useHome } from "./contexts/HomeContext";
 import { FoodItem } from "../data/interfaces";
 import { ThemedText } from "../components/ThemedText";
 import { fetchProductInfo } from "../api/foodApi";
-import { MacroCircle } from "../components/MacroCircle";
+import { MacroIcon } from "../components/MacroIcon";
 
 export default function FoodInfoScreen() {
   const { barcode } = useLocalSearchParams();
@@ -108,6 +108,36 @@ export default function FoodInfoScreen() {
                   item.nutriments?.fat_100g * servingMultiplier ||
                   item.fat) * servingMultiplier
               : item.nutriments?.fat_100g || item.fat,
+          saturatedFat:
+            servingType === "serving"
+              ? (item.nutriments?.["saturated-fat_serving"] ||
+                  item.nutriments?.["saturated-fat_100g"] * servingMultiplier ||
+                  item.saturatedFat) * servingMultiplier
+              : item.nutriments?.["saturated-fat_100g"] || item.saturatedFat,
+          cholesterol:
+            servingType === "serving"
+              ? (item.nutriments?.cholesterol_serving ||
+                  item.nutriments?.cholesterol_100g * servingMultiplier ||
+                  item.cholesterol) * servingMultiplier
+              : item.nutriments?.cholesterol_100g || item.cholesterol,
+          sodium:
+            servingType === "serving"
+              ? (item.nutriments?.sodium_serving ||
+                  item.nutriments?.sodium_100g * servingMultiplier ||
+                  item.sodium) * servingMultiplier
+              : item.nutriments?.sodium_100g || item.sodium,
+          fiber:
+            servingType === "serving"
+              ? (item.nutriments?.fiber_serving ||
+                  item.nutriments?.fiber_100g * servingMultiplier ||
+                  item.fiber) * servingMultiplier
+              : item.nutriments?.fiber_100g || item.fiber,
+          sugar:
+            servingType === "serving"
+              ? (item.nutriments?.sugars_serving ||
+                  item.nutriments?.sugars_100g * servingMultiplier ||
+                  item.sugar) * servingMultiplier
+              : item.nutriments?.sugars_100g || item.sugar,
           date: new Date().toISOString(),
           barcode: barcode as string,
           quantity: customServingSize || item.serving_quantity || 100,
@@ -196,6 +226,12 @@ export default function FoodInfoScreen() {
     nutriments.fat_100g || item.fat
       ? (((nutriments.fat_100g || item.fat) * servingSize) / 100).toFixed(1)
       : "N/A";
+  const calculatedSugar =
+    nutriments.sugars_100g || item.sugar
+      ? (((nutriments.sugars_100g || item.sugar) * servingSize) / 100).toFixed(
+          1
+        )
+      : "N/A";
 
   return (
     <ScrollView style={styles.container}>
@@ -227,21 +263,34 @@ export default function FoodInfoScreen() {
                 </ThemedText>
                 <ThemedText style={styles.caloriesUnit}>kcal</ThemedText>
               </View>
-              <View style={styles.macroCircles}>
-                <MacroCircle
+              <View style={styles.macroIcons}>
+                <MacroIcon
+                  icon="nutrition"
                   label="Protein"
                   value={calculatedProtein}
+                  unit="g"
                   color="#ff6b6b"
                 />
-                <MacroCircle
+                <MacroIcon
+                  icon="leaf"
                   label="Carbs"
                   value={calculatedCarbs}
+                  unit="g"
                   color="#4ecdc4"
                 />
-                <MacroCircle
+                <MacroIcon
+                  icon="water"
                   label="Fat"
                   value={calculatedFat}
+                  unit="g"
                   color="#feca57"
+                />
+                <MacroIcon
+                  icon="ice-cream"
+                  label="Sugar"
+                  value={calculatedSugar}
+                  unit="g"
+                  color="#9b59b6"
                 />
               </View>
             </View>
@@ -355,12 +404,63 @@ const ManualEntryForm: React.FC<{
           setManualItem((prev) => ({ ...prev, fat: Number(text) }))
         }
       />
+      <TextInput
+        style={styles.manualInput}
+        placeholder="Saturated Fat (g per 100g)"
+        placeholderTextColor="#999"
+        value={manualItem.saturatedFat?.toString() || ""}
+        keyboardType="numeric"
+        onChangeText={(text) =>
+          setManualItem((prev) => ({ ...prev, saturatedFat: Number(text) }))
+        }
+      />
+      <TextInput
+        style={styles.manualInput}
+        placeholder="Cholesterol (mg per 100g)"
+        placeholderTextColor="#999"
+        value={manualItem.cholesterol?.toString() || ""}
+        keyboardType="numeric"
+        onChangeText={(text) =>
+          setManualItem((prev) => ({ ...prev, cholesterol: Number(text) }))
+        }
+      />
+      <TextInput
+        style={styles.manualInput}
+        placeholder="Sodium (mg per 100g)"
+        placeholderTextColor="#999"
+        value={manualItem.sodium?.toString() || ""}
+        keyboardType="numeric"
+        onChangeText={(text) =>
+          setManualItem((prev) => ({ ...prev, sodium: Number(text) }))
+        }
+      />
+      <TextInput
+        style={styles.manualInput}
+        placeholder="Fiber (g per 100g)"
+        placeholderTextColor="#999"
+        value={manualItem.fiber?.toString() || ""}
+        keyboardType="numeric"
+        onChangeText={(text) =>
+          setManualItem((prev) => ({ ...prev, fiber: Number(text) }))
+        }
+      />
+      <TextInput
+        style={styles.manualInput}
+        placeholder="Sugar (g per 100g)"
+        placeholderTextColor="#999"
+        value={manualItem.sugar?.toString() || ""}
+        keyboardType="numeric"
+        onChangeText={(text) =>
+          setManualItem((prev) => ({ ...prev, sugar: Number(text) }))
+        }
+      />
       <TouchableOpacity style={styles.submitButton} onPress={onSubmit}>
         <ThemedText style={styles.submitButtonText}>Submit</ThemedText>
       </TouchableOpacity>
     </View>
   );
 };
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -412,29 +512,46 @@ const styles = StyleSheet.create({
   customServingContainer: {
     marginTop: 20,
   },
-  // inputContainer: {
-  //   flexDirection: "row",
-  //   alignItems: "center",
-  //   justifyContent: "center",
-  //   marginBottom: 20,
-  // },
-  input: {
-    height: 50,
-    borderColor: "#ccc",
-    borderWidth: 1,
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 10,
     padding: 10,
-    width: 100,
-    textAlign: "center",
-    fontSize: 20,
-    color: "#ffffff",
-    backgroundColor: "#494c4d",
-    marginHorizontal: 20,
   },
-  // changeServingSizeButton: {
-  //   fontSize: 30,
-  //   color: "#ff3366",
-  //   paddingHorizontal: 20,
-  // },
+  buttonContainer: {
+    backgroundColor: "green",
+    borderRadius: 0,
+    marginHorizontal: 0,
+  },
+  changeServingSizeButton_plus: {
+    fontSize: 20,
+    color: "#FFFFFF",
+    paddingHorizontal: 30,
+    paddingVertical: 16,
+    textAlign: "center",
+    backgroundColor: "#ff3366",
+    borderTopRightRadius: 20,
+    borderBottomRightRadius: 10,
+  },
+  changeServingSizeButton_minus: {
+    fontSize: 20,
+    color: "#FFFFFF",
+    paddingHorizontal: 30,
+    paddingVertical: 16,
+    textAlign: "center",
+    backgroundColor: "#ff3366",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 10,
+  },
+  input_inc: {
+    fontSize: 24,
+    textAlign: "center",
+    backgroundColor: "#FFFFFF",
+    width: 80,
+    height: 52,
+    marginHorizontal: 0,
+  },
   addButton: {
     backgroundColor: "#ff3366",
     padding: 15,
@@ -498,44 +615,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#494c4d",
     borderRadius: 5,
   },
-  inputContainer: {
+  macroIcons: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 10,
-    padding: 10,
-  },
-  buttonContainer: {
-    backgroundColor: "green",
-    borderRadius: 0,
-    marginHorizontal: 0,
-  },
-  changeServingSizeButton_plus: {
-    fontSize: 20,
-    color: "#FFFFFF",
-    paddingHorizontal: 30,
-    paddingVertical: 16,
-    textAlign: "center",
-    backgroundColor: "#ff3366",
-    borderTopRightRadius: 20,
-    borderBottomRightRadius: 10,
-  },
-  changeServingSizeButton_minus: {
-    fontSize: 20,
-    color: "#FFFFFF",
-    paddingHorizontal: 30,
-    paddingVertical: 16,
-    textAlign: "center",
-    backgroundColor: "#ff3366",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 10,
-  },
-  input_inc: {
-    fontSize: 24,
-    textAlign: "center",
-    backgroundColor: "#FFFFFF",
-    width: 80,
-    height: 52,
-    marginHorizontal: 0,
+    justifyContent: "space-around",
+    flexWrap: "wrap",
+    marginTop: 10,
   },
 });

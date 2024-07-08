@@ -2,7 +2,7 @@
   "expo": {
     "name": "NutriScan Pro",
     "slug": "nutriscan-pro",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "nutriscanpro",
@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.ohmdesign.nutriscanpro",
-      "buildNumber": "3",
+      "buildNumber": "4",
       "infoPlist": {
         "NSHealthShareUsageDescription": "This app requires access to your step count data to display it on the dashboard.",
         "NSHealthUpdateUsageDescription": "This app requires access to your step count data to display it on the dashboard.",
@@ -29,10 +29,12 @@
       },
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACTIVITY_RECOGNITION",
+        "android.permission.BODY_SENSORS"
       ],
       "package": "com.ohmdesign.nutriscanpro",
-      "versionCode": 3
+      "versionCode": 4
     },
     "web": {
       "bundler": "metro",

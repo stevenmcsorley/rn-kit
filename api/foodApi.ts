@@ -18,6 +18,20 @@ interface ProductInfo {
     carbohydrates_serving?: number;
     fat_100g?: number;
     fat_serving?: number;
+    "saturated-fat_100g"?: number;
+    "saturated-fat_serving"?: number;
+    "polyunsaturated-fat_100g"?: number;
+    "polyunsaturated-fat_serving"?: number;
+    "monounsaturated-fat_100g"?: number;
+    "monounsaturated-fat_serving"?: number;
+    cholesterol_100g?: number;
+    cholesterol_serving?: number;
+    sodium_100g?: number;
+    sodium_serving?: number;
+    fiber_100g?: number;
+    fiber_serving?: number;
+    sugars_100g?: number;
+    sugars_serving?: number;
   };
 }
 
@@ -44,6 +58,7 @@ export async function fetchProductInfo(
     }
 
     const result = await response.json();
+    console.log("response", result);
 
     if (!result.product) {
       return null;

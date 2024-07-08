@@ -1,144 +1,189 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   StyleSheet,
   View,
   TouchableOpacity,
-  ScrollView,
   SafeAreaView,
-  Platform,
+  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
-import { Pedometer } from "expo-sensors";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  runOnJS,
+} from "react-native-reanimated";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
 import { ThemedText } from "@/components/ThemedText";
-import { MacroCircle } from "@/components/MacroCircle";
 import { useHome } from "../contexts/HomeContext";
+import { CaloriesPanel } from "@/components/CaloriesPanel";
+import { MacrosPanel } from "@/components/MacrosPanel";
+import { HeartHealthyPanel } from "@/components/HeartHealthyPanel";
+import { LowCarbPanel } from "@/components/LowCarbPanel";
+
+import { useFoodRepository } from "../../contexts/FoodRepositoryContext";
+import { FoodItem } from "@/data/interfaces";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const PANEL_COUNT = 4;
 
 export default function HomeScreen() {
-  const { scannedItems, macros, loadScannedItems, calculateMacros } = useHome();
-  const [isPedometerAvailable, setIsPedometerAvailable] = useState("checking");
-  const [todayStepCount, setTodayStepCount] = useState(0);
-  const [currentStepCount, setCurrentStepCount] = useState(0);
+  const {
+    macros,
+    macroGoals,
+    loadScannedItems,
+    calculateMacros,
+    dailyCalorieGoal,
+    setDailyCalorieGoal,
+    highestCarbFood,
+  } = useHome();
   const router = useRouter();
+  const translateX = useSharedValue(0);
+  const [activePanel, setActivePanel] = React.useState(0);
+  const [diaryItems, setDiaryItems] = React.useState<{
+    [date: string]: FoodItem[];
+  }>({});
 
-  const subscribe = async () => {
-    if (Platform.OS !== "ios") {
-      return null;
-    }
+  const foodRepository = useFoodRepository();
 
-    const isAvailable = await Pedometer.isAvailableAsync();
-    setIsPedometerAvailable(String(isAvailable));
-
-    if (isAvailable) {
-      const end = new Date();
-      const start = new Date();
-      start.setHours(0, 0, 0, 0);
-
-      const todayStepCountResult = await Pedometer.getStepCountAsync(
-        start,
-        end
-      );
-      if (todayStepCountResult) {
-        setTodayStepCount(todayStepCountResult.steps);
+  const loadDiaryItems = useCallback(async () => {
+    const items = await foodRepository.getAllItems();
+    const groupedItems = items.reduce((acc, item) => {
+      const date = new Date(item.date).toDateString();
+      if (!acc[date]) {
+        acc[date] = [];
       }
+      acc[date].push(item);
+      return acc;
+    }, {} as { [date: string]: FoodItem[] });
 
-      return Pedometer.watchStepCount((result) => {
-        setCurrentStepCount(result.steps);
-      });
-    }
-    return null;
-  };
-
-  useEffect(() => {
-    let subscription: { remove: () => void } | null = null;
-
-    const initializeSubscription = async () => {
-      subscription = await subscribe();
-    };
-
-    if (Platform.OS === "ios") {
-      initializeSubscription();
-    }
-
-    return () => {
-      if (subscription) {
-        subscription.remove();
-      }
-    };
-  }, []);
+    setDiaryItems(groupedItems);
+  }, [foodRepository]);
 
   useFocusEffect(
     useCallback(() => {
       loadScannedItems();
       calculateMacros();
-    }, [loadScannedItems, calculateMacros])
+      loadDiaryItems();
+    }, [loadScannedItems, calculateMacros, loadDiaryItems])
   );
+
+  const totalCalories = useMemo(() => {
+    const today = new Date().toDateString();
+    return (diaryItems[today] || []).reduce(
+      (sum, item) => sum + (item.calories || 0),
+      0
+    );
+  }, [diaryItems]);
+
+  const clampTranslateX = (value: number) => {
+    "worklet";
+    const minTranslate = -SCREEN_WIDTH * (PANEL_COUNT - 1);
+    return Math.max(Math.min(value, 0), minTranslate);
+  };
+
+  const panGesture = Gesture.Pan()
+    .onUpdate((event) => {
+      const newTranslateX = event.translationX + -activePanel * SCREEN_WIDTH;
+      translateX.value = clampTranslateX(newTranslateX);
+    })
+    .onEnd((event) => {
+      const panDistance = event.translationX;
+      const panVelocity = event.velocityX;
+      const threshold = SCREEN_WIDTH / 4;
+
+      let newActivePanel = activePanel;
+
+      if (Math.abs(panDistance) > threshold || Math.abs(panVelocity) > 500) {
+        if (panDistance > 0 && activePanel > 0) {
+          newActivePanel = activePanel - 1;
+        } else if (panDistance < 0 && activePanel < PANEL_COUNT - 1) {
+          newActivePanel = activePanel + 1;
+        }
+      }
+
+      translateX.value = withSpring(
+        -newActivePanel * SCREEN_WIDTH,
+        {
+          damping: 30,
+          stiffness: 150,
+          mass: 0.5,
+        },
+        () => {
+          runOnJS(setActivePanel)(newActivePanel);
+        }
+      );
+    });
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <ThemedText type="title" style={styles.title}>
-          Dashboard
-        </ThemedText>
+      <ThemedText type="title" style={styles.title}>
+        Today
+      </ThemedText>
 
-        <View style={styles.macrosContainer}>
-          <ThemedText type="subtitle" style={styles.macrosTitle}>
-            Macros
-          </ThemedText>
-          <View style={styles.macroCircles}>
-            <MacroCircle
-              label="Protein"
-              value={macros.protein.toFixed(1)}
-              color="#ff6b6b"
-            />
-            <MacroCircle
-              label="Carbs"
-              value={macros.carbs.toFixed(1)}
-              color="#4ecdc4"
-            />
-            <MacroCircle
-              label="Fat"
-              value={macros.fat.toFixed(1)}
-              color="#feca57"
+      <GestureDetector gesture={panGesture}>
+        <Animated.View style={[styles.panelContainer, animatedStyle]}>
+          <View style={styles.panel}>
+            <CaloriesPanel
+              dailyGoal={dailyCalorieGoal}
+              consumed={totalCalories}
+              setDailyCalorieGoal={setDailyCalorieGoal}
             />
           </View>
-        </View>
-        {Platform.OS === "ios" && (
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <ThemedText style={styles.statLabel}>Steps Today</ThemedText>
-              <ThemedText style={styles.statValue}>{todayStepCount}</ThemedText>
-            </View>
-            <View style={styles.statItem}>
-              <ThemedText style={styles.statLabel}>Current Session</ThemedText>
-              <ThemedText style={styles.statValue}>
-                {currentStepCount}
-              </ThemedText>
-            </View>
+          <View style={styles.panel}>
+            <MacrosPanel macros={macros} />
           </View>
-        )}
-
-        <TouchableOpacity
-          style={styles.scanButton}
-          onPress={() => router.push("/scanner")}
-        >
-          <Ionicons name="barcode-outline" size={24} color="white" />
-          <ThemedText style={styles.scanButtonText}>Scan Barcode</ThemedText>
-        </TouchableOpacity>
-
-        <ThemedText type="subtitle" style={styles.recentScans}>
-          Recent Scans
-        </ThemedText>
-        {scannedItems.map((item, index) => (
-          <View key={index} style={styles.scannedItem}>
-            <ThemedText style={styles.itemName}>{item.name}</ThemedText>
-            <ThemedText style={styles.itemCalories}>
-              {Math.round(item.calories)} kcal
-            </ThemedText>
+          <View style={styles.panel}>
+            <HeartHealthyPanel
+              nutrients={{
+                totalFat: macros.fat,
+                saturatedFat: macros.saturatedFat,
+                cholesterol: macros.cholesterol,
+                sodium: macros.sodium,
+                fiber: macros.fiber,
+                sugar: macros.sugar,
+              }}
+            />
           </View>
+          <View style={styles.panel}>
+            <LowCarbPanel
+              macros={{ carbs: macros.carbs, fiber: macros.fiber }}
+              highestCarbFood={highestCarbFood}
+            />
+          </View>
+        </Animated.View>
+      </GestureDetector>
+
+      <View style={styles.panelDots}>
+        {[...Array(PANEL_COUNT)].map((_, index) => (
+          <TouchableOpacity
+            key={index}
+            style={[styles.dot, index === activePanel && styles.activeDot]}
+            onPress={() => {
+              setActivePanel(index);
+              translateX.value = withSpring(-index * SCREEN_WIDTH, {
+                damping: 30,
+                stiffness: 150,
+                mass: 0.5,
+              });
+            }}
+          />
         ))}
-      </ScrollView>
+      </View>
+
+      <TouchableOpacity
+        style={styles.searchBar}
+        onPress={() => router.push("/search")}
+      >
+        <Ionicons name="search-outline" size={24} color="#777" />
+        <ThemedText style={styles.searchText}>Search for a food</ThemedText>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -148,93 +193,46 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#242423",
   },
-  scrollContent: {
-    padding: 20,
-  },
   title: {
     fontSize: 28,
     fontWeight: "bold",
     marginBottom: 20,
+    marginLeft: 20,
     color: "#ffffff",
   },
-  macrosContainer: {
-    marginVertical: 20,
-  },
-  macrosTitle: {
-    marginBottom: 10,
-    color: "#ffffff",
-  },
-  macroCircles: {
+  panelContainer: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    width: SCREEN_WIDTH * PANEL_COUNT,
   },
-  statsContainer: {
+  panel: {
+    width: SCREEN_WIDTH,
+    paddingHorizontal: 20,
+  },
+  panelDots: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginVertical: 20,
-  },
-  statItem: {
-    alignItems: "center",
-    backgroundColor: "#494c4d",
-    padding: 15,
-    borderRadius: 10,
-    width: "48%",
-  },
-  statLabel: {
-    color: "#ffffff",
-    fontSize: 14,
-  },
-  statValue: {
-    color: "#ffffff",
-    fontSize: 18,
-    fontWeight: "bold",
-    marginTop: 5,
-  },
-  scanButton: {
-    flexDirection: "row",
-    alignItems: "center",
     justifyContent: "center",
-    padding: 15,
-    borderRadius: 10,
-    marginVertical: 20,
-    backgroundColor: "#ff3366",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.8,
-    shadowRadius: 10,
-    elevation: 15,
-  },
-  scanButtonText: {
-    color: "#ffffff",
-    fontSize: 18,
-    fontWeight: "bold",
-    marginLeft: 10,
-  },
-  recentScans: {
-    marginTop: 20,
-    marginBottom: 10,
-    color: "#ffffff",
-  },
-  scannedItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    flexWrap: "wrap",
-    alignItems: "center",
-    padding: 15,
-    backgroundColor: "#2D2F34",
-    borderRadius: 10,
     marginTop: 10,
-    borderColor: "#ff3366",
-    borderWidth: 1,
-    shadowColor: "#ff3366",
-    shadowOffset: { width: 5, height: 4 },
   },
-  itemName: {
-    color: "#ffffff",
-    fontSize: 16,
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#555",
+    marginHorizontal: 4,
   },
-  itemCalories: {
-    color: "#ffffff",
-    fontSize: 14,
+  activeDot: {
+    backgroundColor: "#fff",
+  },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#2D2F34",
+    borderRadius: 25,
+    padding: 10,
+    margin: 10,
+  },
+  searchText: {
+    color: "#777",
+    marginLeft: 10,
   },
 });

@@ -6,6 +6,11 @@ export interface FoodItem {
   protein: number;
   carbs: number;
   fat: number;
+  saturatedFat: number;
+  cholesterol: number;
+  sodium: number;
+  fiber: number;
+  sugar: number;
   date: string;
   barcode: string;
   quantity: number;
@@ -20,4 +25,6 @@ export interface FoodRepository {
   getItemByBarcode(barcode: string): Promise<FoodItem | null>;
   updateItem(item: FoodItem): Promise<void>;
   deleteItem(id: number): Promise<void>;
+  getDailyCalorieGoal(): Promise<number>;
+  setDailyCalorieGoal(goal: number): Promise<void>;
 }

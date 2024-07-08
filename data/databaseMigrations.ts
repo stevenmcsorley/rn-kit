@@ -1,7 +1,7 @@
 import { SQLiteDatabase } from "expo-sqlite";
 
 export async function migrateDatabase(db: SQLiteDatabase) {
-  const DATABASE_VERSION = 4; // Incremented to trigger the new migration
+  const DATABASE_VERSION = 5; // Incremented to trigger the new migration
   const result = await db.getFirstAsync<{ user_version: number } | null>(
     "PRAGMA user_version"
   );
@@ -12,20 +12,31 @@ export async function migrateDatabase(db: SQLiteDatabase) {
       PRAGMA foreign_keys = OFF;
       BEGIN TRANSACTION;
 
-      -- Create the table if it doesn't exist
+      -- Create the items table if it doesn't exist
       CREATE TABLE IF NOT EXISTS items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
         brand TEXT,
         calories REAL,
-        barcode TEXT,
         protein REAL,
         carbs REAL,
         fat REAL,
+        saturatedFat REAL,
+        cholesterol REAL,
+        sodium REAL,
+        fiber REAL,
+        sugar REAL,
         date TEXT,
+        barcode TEXT,
         quantity REAL,
         unit TEXT,
         servingType TEXT
+      );
+
+      -- Create the settings table if it doesn't exist
+      CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value REAL
       );
 
       -- Check if new columns exist, if not, add them
@@ -38,13 +49,11 @@ export async function migrateDatabase(db: SQLiteDatabase) {
     const columnNames = columns.map((col) => col.name);
 
     const columnsToAdd = [
-      { name: "protein", type: "REAL" },
-      { name: "carbs", type: "REAL" },
-      { name: "fat", type: "REAL" },
-      { name: "date", type: "TEXT" },
-      { name: "quantity", type: "REAL" },
-      { name: "unit", type: "TEXT" },
-      { name: "servingType", type: "TEXT" },
+      { name: "saturatedFat", type: "REAL" },
+      { name: "cholesterol", type: "REAL" },
+      { name: "sodium", type: "REAL" },
+      { name: "fiber", type: "REAL" },
+      { name: "sugar", type: "REAL" },
     ];
 
     for (const column of columnsToAdd) {
