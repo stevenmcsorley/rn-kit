@@ -1,7 +1,7 @@
 import { SQLiteDatabase } from "expo-sqlite";
 
 export async function migrateDatabase(db: SQLiteDatabase) {
-  const DATABASE_VERSION = 5; // Incremented to trigger the new migration
+  const DATABASE_VERSION = 6; // Incremented to trigger the new migration
   const result = await db.getFirstAsync<{ user_version: number } | null>(
     "PRAGMA user_version"
   );
@@ -38,6 +38,9 @@ export async function migrateDatabase(db: SQLiteDatabase) {
         key TEXT PRIMARY KEY,
         value REAL
       );
+
+      -- Ensure default value for dailyCalorieGoal is set
+      INSERT OR IGNORE INTO settings (key, value) VALUES ('dailyCalorieGoal', 2000);
 
       -- Check if new columns exist, if not, add them
       PRAGMA table_info(items);

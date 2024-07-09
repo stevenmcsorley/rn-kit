@@ -1,4 +1,6 @@
-import React, { useState, useCallback, useMemo } from "react";
+// screens/DiaryScreen.tsx
+
+import React, { useCallback, useEffect, useMemo } from "react";
 import {
   StyleSheet,
   View,
@@ -9,63 +11,36 @@ import {
 } from "react-native";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { ThemedText } from "../../components/ThemedText";
-import { useFoodRepository } from "../../contexts/FoodRepositoryContext";
+import { useStore } from "../../store/store";
 import { FoodItem } from "../../data/interfaces";
 import Icon from "react-native-vector-icons/MaterialIcons";
 
 export default function DiaryScreen() {
-  const [diaryItems, setDiaryItems] = useState<{ [date: string]: FoodItem[] }>(
-    {}
-  );
-  const [refreshKey, setRefreshKey] = useState(0);
-  const foodRepository = useFoodRepository();
+  const foodItems = useStore((state) => state.foodItems);
+  const loadFoodItems = useStore((state) => state.loadFoodItems);
+  const deleteFoodItem = useStore((state) => state.deleteFoodItem);
+  const calculateMacros = useStore((state) => state.calculateMacros);
   const router = useRouter();
   const { newRefreshKey } = useLocalSearchParams();
 
-  const loadDiaryItems = useCallback(async () => {
-    const items = await foodRepository.getAllItems();
-    const groupedItems = items.reduce((acc, item) => {
-      const date = new Date(item.date).toDateString();
-      if (!acc[date]) {
-        acc[date] = [];
-      }
-      acc[date].push(item);
-      return acc;
-    }, {} as { [date: string]: FoodItem[] });
-
-    setDiaryItems(groupedItems);
-  }, [foodRepository]);
+  useEffect(() => {
+    loadFoodItems();
+  }, [newRefreshKey]);
 
   useFocusEffect(
     useCallback(() => {
-      loadDiaryItems();
-    }, [loadDiaryItems, refreshKey])
+      calculateMacros();
+    }, [calculateMacros, foodItems])
   );
-
-  useFocusEffect(
-    useCallback(() => {
-      if (newRefreshKey) {
-        setRefreshKey(parseInt(newRefreshKey as string));
-      }
-    }, [newRefreshKey])
-  );
-
-  const totalCalories = useMemo(() => {
-    const today = new Date().toDateString();
-    return (diaryItems[today] || []).reduce(
-      (sum, item) => sum + (item.calories || 0),
-      0
-    );
-  }, [diaryItems]);
 
   const handleItemPress = useCallback(
     (barcode: string) => {
       router.push({
         pathname: "/food-info",
-        params: { barcode, fromDiary: "true", refreshKey },
+        params: { barcode, fromDiary: "true", refreshKey: newRefreshKey },
       });
     },
-    [router, refreshKey]
+    [router, newRefreshKey]
   );
 
   const handleDeleteItem = useCallback(
@@ -82,8 +57,8 @@ export default function DiaryScreen() {
             text: "Delete",
             onPress: async () => {
               if (item.id !== undefined) {
-                await foodRepository.deleteItem(item.id);
-                setRefreshKey((prev) => prev + 1);
+                await deleteFoodItem(item.id);
+                loadFoodItems();
               }
             },
             style: "destructive",
@@ -91,8 +66,15 @@ export default function DiaryScreen() {
         ]
       );
     },
-    [foodRepository]
+    [deleteFoodItem, loadFoodItems]
   );
+
+  const totalCalories = useMemo(() => {
+    const today = new Date().toDateString();
+    return foodItems
+      .filter((item) => new Date(item.date).toDateString() === today)
+      .reduce((sum, item) => sum + (item.calories || 0), 0);
+  }, [foodItems]);
 
   const formatMacro = useCallback((value: number | null): string => {
     return value !== null ? value.toFixed(1) : "N/A";
@@ -107,7 +89,14 @@ export default function DiaryScreen() {
         <ThemedText style={styles.totalCalories}>
           Today's Total: {totalCalories.toFixed(0)} kcal
         </ThemedText>
-        {Object.entries(diaryItems).map(([date, items]) => (
+        {Object.entries(
+          foodItems.reduce((acc, item) => {
+            const date = new Date(item.date).toDateString();
+            if (!acc[date]) acc[date] = [];
+            acc[date].push(item);
+            return acc;
+          }, {} as { [date: string]: FoodItem[] })
+        ).map(([date, items]) => (
           <View key={date} style={styles.dateContainer}>
             <ThemedText style={styles.dateHeader}>{date}</ThemedText>
             {items.map((item) => (

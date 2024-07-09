@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -9,8 +9,7 @@ import {
   TextInput,
 } from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
-import { useFoodRepository } from "../contexts/FoodRepositoryContext";
-import { useHome } from "./contexts/HomeContext";
+import { useStore } from "../store/store";
 import { FoodItem } from "../data/interfaces";
 import { ThemedText } from "../components/ThemedText";
 import { fetchProductInfo } from "../api/foodApi";
@@ -24,8 +23,9 @@ export default function FoodInfoScreen() {
   const [manualEntryVisible, setManualEntryVisible] = useState(false);
   const [manualItem, setManualItem] = useState<Partial<FoodItem>>({});
   const router = useRouter();
-  const foodRepository = useFoodRepository();
-  const { refreshDiary } = useHome();
+  const foodRepository = useStore((state) => state.foodRepository);
+  const addFoodItem = useStore((state) => state.addFoodItem);
+  const refreshDiary = useStore((state) => state.refreshDiary);
 
   const resetState = useCallback(() => {
     setProductInfo(null);
@@ -39,7 +39,7 @@ export default function FoodInfoScreen() {
     setIsLoading(true);
     try {
       // First, check if it's a manual entry in the local database
-      const localItem = await foodRepository.getItemByBarcode(
+      const localItem = await foodRepository?.getItemByBarcode(
         barcode as string
       );
       if (localItem) {
@@ -145,7 +145,7 @@ export default function FoodInfoScreen() {
           servingType: servingType,
         };
 
-        await foodRepository.addItem(foodItem);
+        await addFoodItem(foodItem);
         await refreshDiary(); // Refresh the diary after adding the item
         Alert.alert("Success", `Item added to diary (${servingType})`, [
           { text: "OK", onPress: () => router.back() },
@@ -172,7 +172,7 @@ export default function FoodInfoScreen() {
         servingType: "full",
       } as FoodItem;
 
-      await foodRepository.addItem(foodItem);
+      await addFoodItem(foodItem);
       setProductInfo(foodItem);
       setManualEntryVisible(false);
       await refreshDiary(); // Refresh the diary after adding the manual item

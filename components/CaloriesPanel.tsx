@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -10,34 +10,53 @@ import {
 import { ThemedText } from "@/components/ThemedText";
 import { Ionicons } from "@expo/vector-icons";
 import { ProgressBar } from "react-native-paper";
+import { useStore } from "../store/store";
 
-interface CaloriesPanelProps {
-  dailyGoal: number;
-  consumed: number;
-  setDailyCalorieGoal: (goal: number) => void;
-}
+export const CaloriesPanel: React.FC = () => {
+  const {
+    dailyCalorieGoal,
+    todayCalories,
+    setDailyCalorieGoal,
+    loadDailyCalorieGoal,
+  } = useStore((state) => ({
+    dailyCalorieGoal: state.dailyCalorieGoal,
+    todayCalories: state.todayCalories,
+    setDailyCalorieGoal: state.setDailyCalorieGoal,
+    loadDailyCalorieGoal: state.loadDailyCalorieGoal,
+  }));
 
-export const CaloriesPanel: React.FC<CaloriesPanelProps> = ({
-  dailyGoal,
-  consumed,
-  setDailyCalorieGoal,
-}) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [inputGoal, setInputGoal] = useState(dailyGoal.toString());
+  const [inputGoal, setInputGoal] = useState(dailyCalorieGoal.toString());
 
-  const handleSaveGoal = () => {
+  useEffect(() => {
+    setInputGoal(dailyCalorieGoal.toString());
+  }, [dailyCalorieGoal]);
+
+  const handleSaveGoal = async () => {
     const goal = parseInt(inputGoal, 10);
     if (!isNaN(goal)) {
-      setDailyCalorieGoal(goal);
+      console.log("Setting daily goal in CaloriesPanel:", goal);
+      await setDailyCalorieGoal(goal);
+      await loadDailyCalorieGoal();
+      console.log(
+        "New daily goal set in CaloriesPanel:",
+        useStore.getState().dailyCalorieGoal
+      );
       setIsModalVisible(false);
     }
   };
 
-  const remaining = Math.max(0, dailyGoal - consumed);
+  const remaining = Math.max(0, dailyCalorieGoal - todayCalories);
   const consumedProgress =
-    dailyGoal > 0 ? Math.min(consumed / dailyGoal, 1) : 0;
+    dailyCalorieGoal > 0 ? Math.min(todayCalories / dailyCalorieGoal, 1) : 0;
   const remainingProgress =
-    dailyGoal > 0 ? Math.min(remaining / dailyGoal, 1) : 0;
+    dailyCalorieGoal > 0 ? Math.min(remaining / dailyCalorieGoal, 1) : 0;
+
+  console.log("Rendering CaloriesPanel with:", {
+    dailyCalorieGoal,
+    todayCalories,
+    remaining,
+  });
 
   return (
     <View style={styles.panel}>
@@ -56,11 +75,11 @@ export const CaloriesPanel: React.FC<CaloriesPanelProps> = ({
       </View>
       <View style={styles.row}>
         <ThemedText style={styles.label}>Base Goal</ThemedText>
-        <ThemedText style={styles.value}>{dailyGoal}</ThemedText>
+        <ThemedText style={styles.value}>{dailyCalorieGoal}</ThemedText>
       </View>
       <View style={styles.row}>
         <ThemedText style={styles.label}>Food</ThemedText>
-        <ThemedText style={styles.value}>{consumed.toFixed(0)}</ThemedText>
+        <ThemedText style={styles.value}>{todayCalories.toFixed(0)}</ThemedText>
       </View>
       <ProgressBar
         progress={consumedProgress}

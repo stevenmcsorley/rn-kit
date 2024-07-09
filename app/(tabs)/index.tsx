@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -17,13 +17,11 @@ import Animated, {
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
 import { ThemedText } from "@/components/ThemedText";
-import { useHome } from "../contexts/HomeContext";
 import { CaloriesPanel } from "@/components/CaloriesPanel";
 import { MacrosPanel } from "@/components/MacrosPanel";
 import { HeartHealthyPanel } from "@/components/HeartHealthyPanel";
 import { LowCarbPanel } from "@/components/LowCarbPanel";
-
-import { useFoodRepository } from "../../contexts/FoodRepositoryContext";
+import { useStore } from "../../store/store";
 import { FoodItem } from "@/data/interfaces";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -32,51 +30,48 @@ const PANEL_COUNT = 4;
 export default function HomeScreen() {
   const {
     macros,
-    macroGoals,
-    loadScannedItems,
-    calculateMacros,
     dailyCalorieGoal,
-    setDailyCalorieGoal,
+    todayCalories,
+    loadFoodItems,
+    calculateMacros,
+    calculateTodayCalories,
     highestCarbFood,
-  } = useHome();
+    loadDailyCalorieGoal,
+    refreshDiary,
+  } = useStore((state) => ({
+    macros: state.macros,
+    dailyCalorieGoal: state.dailyCalorieGoal,
+    todayCalories: state.todayCalories,
+    loadFoodItems: state.loadFoodItems,
+    calculateMacros: state.calculateMacros,
+    calculateTodayCalories: state.calculateTodayCalories,
+    highestCarbFood: state.highestCarbFood,
+    loadDailyCalorieGoal: state.loadDailyCalorieGoal,
+    refreshDiary: state.refreshDiary,
+  }));
+
   const router = useRouter();
   const translateX = useSharedValue(0);
   const [activePanel, setActivePanel] = React.useState(0);
-  const [diaryItems, setDiaryItems] = React.useState<{
-    [date: string]: FoodItem[];
-  }>({});
-
-  const foodRepository = useFoodRepository();
-
-  const loadDiaryItems = useCallback(async () => {
-    const items = await foodRepository.getAllItems();
-    const groupedItems = items.reduce((acc, item) => {
-      const date = new Date(item.date).toDateString();
-      if (!acc[date]) {
-        acc[date] = [];
-      }
-      acc[date].push(item);
-      return acc;
-    }, {} as { [date: string]: FoodItem[] });
-
-    setDiaryItems(groupedItems);
-  }, [foodRepository]);
 
   useFocusEffect(
     useCallback(() => {
-      loadScannedItems();
-      calculateMacros();
-      loadDiaryItems();
-    }, [loadScannedItems, calculateMacros, loadDiaryItems])
+      const refreshData = async () => {
+        console.log("Refreshing data in HomeScreen");
+        await loadDailyCalorieGoal();
+        await refreshDiary();
+        console.log(
+          "Daily calorie goal after refresh:",
+          useStore.getState().dailyCalorieGoal
+        );
+        console.log(
+          "Today's calories after refresh:",
+          useStore.getState().todayCalories
+        );
+      };
+      refreshData();
+    }, [loadDailyCalorieGoal, refreshDiary])
   );
-
-  const totalCalories = useMemo(() => {
-    const today = new Date().toDateString();
-    return (diaryItems[today] || []).reduce(
-      (sum, item) => sum + (item.calories || 0),
-      0
-    );
-  }, [diaryItems]);
 
   const clampTranslateX = (value: number) => {
     "worklet";
@@ -130,11 +125,7 @@ export default function HomeScreen() {
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.panelContainer, animatedStyle]}>
           <View style={styles.panel}>
-            <CaloriesPanel
-              dailyGoal={dailyCalorieGoal}
-              consumed={totalCalories}
-              setDailyCalorieGoal={setDailyCalorieGoal}
-            />
+            <CaloriesPanel />
           </View>
           <View style={styles.panel}>
             <MacrosPanel macros={macros} />
